@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -20,6 +22,9 @@ public class UpdatedSwitch implements BasicFunctionalities {
     private final Supplier<Case> randomCase = () -> randomiser.getElement(Case.values());
     private final List<Case> cases = List.of(Case.values());
 
+    /**
+     *
+     */
     @Test
     void LTSFeatures() {
         switch (randomCase.get()) {
@@ -119,8 +124,34 @@ public class UpdatedSwitch implements BasicFunctionalities {
         switch (potentiallyNullInput) {
             case "AC/DC" -> logger.print("ABC");
             case null -> logger.print("null");
-            default -> logger.print("not null");
+            default -> logger.print("default value");
 //            case null, default -> logger.print("Null or whatever");
+        }
+
+        // snippet
+        final var listOfObjects = List.of("ABC", List.of("AC", "DC"), "XYZ", "123456789", 1);
+        final Object input = randomiser.getElement(listOfObjects);
+        switch (input) {
+            case String s && s.length() > 3 -> logger.pairs(s, "It's a long string");
+            case String s -> logger.pairs(s, "just a string");
+            case List<?> list -> logger.pairs(
+                    list.stream().map(Object::toString).collect(Collectors.joining("/")),
+                    "it was a list"
+            );
+            default -> logger.pairs(input, "Something else");
+        }
+
+        // snippet
+        final Predicate<String> onlyContainsNumbers = (str) -> str.matches("[0-9]+");
+        final Object possibleNumber = randomiser.getElement(listOfObjects);
+        switch (possibleNumber) {
+            case String s && onlyContainsNumbers.test(s) -> logger.pairs(Integer.valueOf(s), "Casting to number");
+//            case String s -> logger.pairs(s, "just a string");
+            case List<?> list -> logger.pairs(
+                    list.stream().map(Object::toString).collect(Collectors.joining("/")),
+                    "it was a list"
+            );
+            default -> logger.pairs(possibleNumber, "Something else");
         }
     }
 }

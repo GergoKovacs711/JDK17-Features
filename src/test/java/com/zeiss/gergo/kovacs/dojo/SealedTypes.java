@@ -62,6 +62,7 @@ public class SealedTypes implements BasicFunctionalities {
 
     final class NoMatch implements Match {}
 
+    // they are final by default
     record OneMatch(String match) implements Match {}
 
     record MultipleMatches(List<String> matches) implements Match {}

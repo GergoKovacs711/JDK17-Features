@@ -20,7 +20,7 @@ public class StringFeatures implements BasicFunctionalities{
         final var html = """
                 <html>      
                     <body>
-                        <div>example text</div>
+                        <div>example text</div> 
                     </body>
                 </html""";
 
