@@ -6,7 +6,7 @@ The dojo section covers the major language features released with the JDKs 12-17
 
 Most feature groups have corresponding challenges which are aimed to deepen the understanding of the covered features and give a chance to try them out in action.
 
-_`The challenges are to be released in a separate branch, on the day of the dojo - 2022.03.24`_
+_`The challenges are located in the challenges branch.`_
 
 ## Covered features
  * Stream collector - teeing
