@@ -18,11 +18,11 @@ public class StringFeatures implements BasicFunctionalities{
 //                """;
 
         final var html = """
-                <html>      
+                  <html>      
                     <body>
                         <div>example text</div> 
                     </body>
-                </html""";
+                  </html>""";
 
         final var fragmentShaderOld = "version 330 core\n" +
                                       "                out vec4 FragColor;\n" +

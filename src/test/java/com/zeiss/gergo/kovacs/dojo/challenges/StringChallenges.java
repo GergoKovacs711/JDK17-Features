@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -22,7 +24,11 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeDeckOfCards() {
-        final var towerOfCards = "";
+        final var towerOfCards = """
+                   /\\
+                  /\\/\\
+                 /\\/\\/\\
+                /\\/\\/\\/\\""";
         logger.print(towerOfCards);
         assertNotEquals(towerOfCards.charAt(towerOfCards.length() - 1), '\n');
     }
@@ -35,8 +41,11 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeDeckOfCardsWithShadowsOnTheLeft() {
-        final var towerOfCards = "";
-        logger.print(towerOfCards);
+        final var towerOfCards = """
+                   //\\
+                  //\\/\\
+                 //\\/\\/\\
+                //\\/\\/\\/\\""";
         assertNotEquals(towerOfCards.charAt(towerOfCards.length() - 1), '\n');
     }
 
@@ -48,7 +57,11 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeDeckOfCardsWithShadowsOnTheRight() {
-        final var towerOfCards = "";
+        final var towerOfCards = """
+                   /\\\\
+                  /\\/\\\\
+                 /\\/\\/\\\\
+                /\\/\\/\\/\\\\""";
         logger.print(towerOfCards);
         assertNotEquals(towerOfCards.charAt(towerOfCards.length() - 1), '\n');
     }
@@ -58,7 +71,8 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeTripleQuotes() {
-        final var tripleDoubleQuotes = "";
+        final var tripleDoubleQuotes = """
+                ""\"""";
         logger.print(tripleDoubleQuotes);
         assertNotEquals(tripleDoubleQuotes.charAt(tripleDoubleQuotes.length() - 1), '\n');
     }
@@ -68,7 +82,8 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeTripleQuotesAndNewLines() {
-        final var tripleDoubleQuotes = "";
+        final var tripleDoubleQuotes = """              
+                ""\"""";
         logger.print(tripleDoubleQuotes);
         assertNotEquals(tripleDoubleQuotes.charAt(tripleDoubleQuotes.length() - 1), '\n');
         assertNotEquals(tripleDoubleQuotes.charAt(0), '\n');
@@ -78,8 +93,10 @@ public class StringChallenges implements BasicFunctionalities {
      * Six spaces
      */
     @Test
-    void challengeSichWhiteSpacesInARow() {
-        final var sixWhitespacesInARow = "";
+    void challengeSixWhiteSpacesInARow() {
+        final var sixWhitespacesInARow = """
+                some text with six whitespaces at the end      \s\
+                """;
         String expected = sixWhitespacesInARow.substring(sixWhitespacesInARow.length() - 6);
         assertEquals(expected, "      ");
     }
@@ -89,26 +106,30 @@ public class StringChallenges implements BasicFunctionalities {
      */
     @Test
     void challengeHelloDotDotDot() {
-        final var helloDotDotDot = "";
+        final var helloDotDotDot = """
+                Hello %s\
+                """;
         assertEquals(helloDotDotDot.toLowerCase(Locale.ROOT).formatted("Thomas"), "hello Thomas");
     }
 
     String solution1(String str) {
-        return "";
+        return str.transform(it -> it.chars()
+                                     .mapToObj(String::valueOf)
+                                     .collect(Collectors.joining("")));
     }
 
     /**
      * Complete the solution so that it returns the ASCII codes for the characters in the input string.
-     * Each characters in the string should be be transformed separately.
+     * Each character in the string should be transformed separately.
      * <p>
-     * The solution should use the String.stransform() method.
+     * The solution should use the String.transform() method.
      * <p>
      * Example:
      * "a" -> 97
      * "b" -> 98
      */
     @Test
-    void transfromChallenge1() {
+    void transformChallenge1() {
         final var input = "abcdef";
         String charactersToInt = solution1(input);
 
@@ -117,19 +138,22 @@ public class StringChallenges implements BasicFunctionalities {
     }
 
     String solution2(String input, Function<String, String> mapper) {
-        return "";
+        return input.transform(it -> it.chars()
+                                       .mapToObj(c -> mapper.apply(String.valueOf((char) c)))
+                                       .collect(Collectors.joining(""))
+        );
     }
 
     /**
      * Complete solution so that it takes a string and a lambda as input and runs the mapper lambda on each and every character found in the input string.
      * <p>
-     * The solution should use the String.stransform() method.
+     * The solution should use the String.transform() method.
      * Example:
      * ("abc", String::toUpperCase) -> "ABC"
      * ("abc", it -> it) -> "abc"
      */
     @Test
-    void transfromChallenge2() {
+    void transformChallenge2() {
         final var input = "abcdef";
         final var noTransformation = solution2(input, it -> it);
 
@@ -164,7 +188,9 @@ public class StringChallenges implements BasicFunctionalities {
     }
 
     String solution3(String input, Style style) {
-        return "";
+        final Function<String, String> indent = style != Style.UPPERCASE ? (str) -> str.indent(4) : Function.identity();
+        final Function<String, String> uppercase = style != Style.INDENT ? String::toUpperCase : Function.identity();
+        return input.transform(indent).transform(uppercase);
     }
 
     /**
@@ -174,14 +200,14 @@ public class StringChallenges implements BasicFunctionalities {
      * For Style.UPPERCASE the characters should be capitalised.
      * For Style.BOTH both transformations should be used.
      * <p>
-     * The solution should use the String.stransform() method.
+     * The solution should use the String.transform() method.
      * Example:
      * ("abc", Style.INDENT) -> "    abc\n"
      * ("abc", Style.UPPERCASE) -> "ABC"
      * ("abc", Style.BOTH) -> "    ABC\n"
      */
     @Test
-    void transfromChallenge3() {
+    void transformChallenge3() {
         final var input = "I want to style this text.";
 
         final var indented = solution3(input, Style.INDENT);
@@ -204,7 +230,13 @@ public class StringChallenges implements BasicFunctionalities {
     }
 
     BiFunction<String, Option, String> solution4(Function<String, String> first, Function<String, String> second) {
-        return (a, b) -> "";
+        final var safeFirst = Optional.ofNullable(first).orElse(Function.identity());
+        final var safeSecond = Optional.ofNullable(second).orElse(Function.identity());
+        return (input, mode) -> switch (mode) {
+            case FIRST -> input.transform(safeFirst);
+            case SECOND -> input.transform(safeSecond);
+            case BOTH -> input.transform(safeFirst).transform(safeSecond);
+        };
     }
 
     /**
@@ -218,13 +250,13 @@ public class StringChallenges implements BasicFunctionalities {
      * For Option.SECOND only the second lambda should be used in the transformation.
      * For Option.BOTH both transformations should be used.
      * <p>
-     * The solution should use the String.stransform() method.
+     * The solution should use the String.transform() method.
      * <p>
      * Example:
      * See test cases below
      */
     @Test
-    void transfromChallenge4() {
+    void transformChallenge4() {
         final Function<String, String> indent = str -> str.indent(4);
         final Function<String, String> uppercase = String::toUpperCase;
 

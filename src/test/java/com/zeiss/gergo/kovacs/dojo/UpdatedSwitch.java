@@ -67,10 +67,11 @@ public class UpdatedSwitch implements BasicFunctionalities {
             default -> logger.print("not null");
         }
 
+        final var input = "";
         // cases must be constants
-        final var reference = "this is a constant";
-//            var reference = "you might lose me!";
-        switch (reference) {
+//        final var reference = "this is a constant";
+            final var reference = "you might lose me!";
+        switch (input) {
             case reference -> logger.print("OK");
             default -> logger.print("it could have changed :(");
         }
@@ -123,14 +124,16 @@ public class UpdatedSwitch implements BasicFunctionalities {
         final var potentiallyNullInput = randomiser.getElementOrNull(List.of("AC/DC", "ABC", "XYZ"));
         switch (potentiallyNullInput) {
             case "AC/DC" -> logger.print("ABC");
-            case null -> logger.print("null");
-            default -> logger.print("default value");
-//            case null, default -> logger.print("Null or whatever");
+//            case null -> logger.print("null");
+//            default -> logger.print("default value");
+            case null, default -> logger.print("Null or whatever");
         }
 
         // snippet
         final var listOfObjects = List.of("ABC", List.of("AC", "DC"), "XYZ", "123456789", 1);
         final Object input = randomiser.getElement(listOfObjects);
+
+
         switch (input) {
             case String s && s.length() > 3 -> logger.pairs(s, "It's a long string");
             case String s -> logger.pairs(s, "just a string");
@@ -143,6 +146,8 @@ public class UpdatedSwitch implements BasicFunctionalities {
 
         // snippet
         final Predicate<String> onlyContainsNumbers = (str) -> str.matches("[0-9]+");
+
+
         final Object possibleNumber = randomiser.getElement(listOfObjects);
         switch (possibleNumber) {
             case String s && onlyContainsNumbers.test(s) -> logger.pairs(Integer.valueOf(s), "Casting to number");

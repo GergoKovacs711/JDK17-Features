@@ -4,14 +4,14 @@ import com.zeiss.gergo.kovacs.dojo.BasicFunctionalities;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.*;
 
 public class StreamChallenges implements BasicFunctionalities {
 
@@ -38,7 +38,7 @@ public class StreamChallenges implements BasicFunctionalities {
         GRAMMAR,
         FOREIGN_LANGUAGE,
         HISTORY,
-        PHYSICIAL_EXERCISE
+        PHYSICAL_EXERCISE
     }
 
     enum Sex {
@@ -63,7 +63,14 @@ public class StreamChallenges implements BasicFunctionalities {
      * The solution should be done with the Collectors.teeing() method
      */
     private NeedSupportOrCompliment solution1(final List<GradeEntry> gradeEntries) {
-        return null;
+        return gradeEntries.stream()
+                           .collect(
+                                   teeing(
+                                           filtering(entry -> entry.grade.getValue() < 3, toList()),
+                                           filtering(entry -> entry.grade.getValue() == 5, toList()),
+                                           NeedSupportOrCompliment::new
+                                   )
+                           );
     }
 
     @Test
@@ -83,6 +90,24 @@ public class StreamChallenges implements BasicFunctionalities {
         Assertions.assertEquals(expectedSupports, result.support);
     }
 
+    private NeedSupportOrCompliment solution11(final List<GradeEntry> gradeEntries) {
+        return gradeEntries.stream().collect(teeing(
+                filtering(ge -> ge.grade.equals(Grade.PASSING) || ge.grade.equals(Grade.FAILURE), toList()),
+                filtering(ge -> ge.grade.equals(Grade.EXCELLENT), toList()),
+                (support, compliment) -> new NeedSupportOrCompliment(support, compliment)));
+    }
+
+    private NeedSupportOrCompliment solution12(final List<GradeEntry> gradeEntries) {
+        return gradeEntries.stream()
+                           .collect(
+                                   teeing(
+                                           filtering(grade -> grade.grade.equals(Grade.PASSING) || grade.grade.equals(Grade.FAILURE), toList()),
+                                           filtering(grade -> grade.grade.equals(Grade.EXCELLENT), toList()),
+                                           NeedSupportOrCompliment::new
+                                   )
+                           );
+    }
+
     record GroupByGradesAndCount(Map<Integer, List<GradeEntry>> byGrades, long sum) {}
 
     /**
@@ -94,7 +119,14 @@ public class StreamChallenges implements BasicFunctionalities {
      * The solution should be done with the Collectors.teeing() method
      */
     private GroupByGradesAndCount solution2(final List<GradeEntry> gradeEntries) {
-        return null;
+        return gradeEntries.stream()
+                           .collect(
+                                   teeing(
+                                           groupingBy(it -> it.grade.getValue()),
+                                           filtering(it -> it.grade.getValue() == 1 || it.grade.getValue() == 5, counting()),
+                                           GroupByGradesAndCount::new
+                                   )
+                           );
     }
 
     @Test
@@ -162,9 +194,51 @@ public class StreamChallenges implements BasicFunctionalities {
      * The solution should be done with the Collectors.teeing() method
      */
     private List<StudentWithAverage> solution3(final List<GradeEntry> gradeEntries) {
-        return null;
+        return gradeEntries.stream()
+                           .collect(
+                                   teeing(
+                                           groupingBy(entry -> entry.schoolYear, groupingBy(entry -> entry.student.firstname + entry.student.lastName)),
+                                           groupingBy(entry -> entry.student.firstname + entry.student.lastName),
+                                           (studentsBySchoolYear, groupedByStudents) -> {
+                                               final List<StudentWithAverage> bestStudentsForASchoolYear =
+                                                       studentsBySchoolYear.values()
+                                                                           .stream()
+                                                                           .map(year -> year.values()
+                                                                                            .stream()
+                                                                                            .map(studentGrades -> new StudentWithAverage(
+                                                                                                            studentGrades.get(0).student,
+                                                                                                            studentGrades.stream()
+                                                                                                                         .mapToInt(entry -> entry.grade.getValue())
+                                                                                                                         .average()
+                                                                                                                         .orElse(0)
+                                                                                                    )
+                                                                                            ).max(Comparator.comparing(StudentWithAverage::average))
+                                                                                            .orElse(null)
+                                                                           ).filter(Objects::nonNull)
+                                                                           .toList();
+                                               final List<StudentWithAverage> studentsAbove40 =
+                                                       groupedByStudents.values()
+                                                                        .stream()
+                                                                        .map(studentGrades -> new StudentWithAverage(
+                                                                                        studentGrades.get(0).student,
+                                                                                        studentGrades.stream()
+                                                                                                     .mapToInt(entry -> entry.grade.getValue())
+                                                                                                     .average()
+                                                                                                     .orElse(0)
+                                                                                )
+                                                                        ).sorted(Comparator.comparing(StudentWithAverage::average))
+                                                                        .filter(student -> student.average >= 4.0)
+                                                                        .toList();
+                                               return Stream.of(studentsAbove40, bestStudentsForASchoolYear)
+                                                            .flatMap(Collection::stream)
+                                                            .filter(
+                                                                    distinctByKey(it -> it.student.firstname + it.student.lastName)
+                                                            )
+                                                            .toList();
+                                           }
+                                   )
+                           );
     }
-
     @Test
     void challenge3() {
         final var bestStudents = solution3(testData);
@@ -216,97 +290,97 @@ public class StreamChallenges implements BasicFunctionalities {
             new GradeEntry(new Student("Karen", "Lopez", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 1),
             new GradeEntry(new Student("Karen", "Lopez", Sex.FEMALE), Grade.GOOD, Subject.HISTORY, 1),
             new GradeEntry(new Student("Karen", "Lopez", Sex.FEMALE), Grade.GOOD, Subject.MATH, 1),
-            new GradeEntry(new Student("Karen", "Lopez", Sex.FEMALE), Grade.SATISFACTORY, Subject.PHYSICIAL_EXERCISE, 1),
+            new GradeEntry(new Student("Karen", "Lopez", Sex.FEMALE), Grade.SATISFACTORY, Subject.PHYSICAL_EXERCISE, 1),
 
             new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.GOOD, Subject.GRAMMAR, 1),
             new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 1),
             new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.GOOD, Subject.HISTORY, 1),
             new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.SATISFACTORY, Subject.MATH, 1),
-            new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 1),
+            new GradeEntry(new Student("James", "Allen", Sex.MALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 1),
 
             new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.SATISFACTORY, Subject.GRAMMAR, 1),
             new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 1),
             new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.EXCELLENT, Subject.HISTORY, 1),
             new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.GOOD, Subject.MATH, 1),
-            new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.EXCELLENT, Subject.PHYSICIAL_EXERCISE, 1),
+            new GradeEntry(new Student("Joseph", "Harris", Sex.MALE), Grade.EXCELLENT, Subject.PHYSICAL_EXERCISE, 1),
 
             new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.PASSING, Subject.GRAMMAR, 1),
             new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 1),
             new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.GOOD, Subject.HISTORY, 1),
             new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.GOOD, Subject.MATH, 1),
-            new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.EXCELLENT, Subject.PHYSICIAL_EXERCISE, 1),
+            new GradeEntry(new Student("Patricia", "Martin", Sex.FEMALE), Grade.EXCELLENT, Subject.PHYSICAL_EXERCISE, 1),
 
             new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.GOOD, Subject.GRAMMAR, 2),
             new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.EXCELLENT, Subject.FOREIGN_LANGUAGE, 2),
             new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.GOOD, Subject.HISTORY, 2),
             new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.GOOD, Subject.MATH, 2),
-            new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.SATISFACTORY, Subject.PHYSICIAL_EXERCISE, 2),
+            new GradeEntry(new Student("Kevin", "Clark", Sex.MALE), Grade.SATISFACTORY, Subject.PHYSICAL_EXERCISE, 2),
 
             new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.GOOD, Subject.GRAMMAR, 2),
             new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 2),
             new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.GOOD, Subject.HISTORY, 2),
             new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.GOOD, Subject.MATH, 2),
-            new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.EXCELLENT, Subject.PHYSICIAL_EXERCISE, 2),
+            new GradeEntry(new Student("Sandra", "Thomas", Sex.FEMALE), Grade.EXCELLENT, Subject.PHYSICAL_EXERCISE, 2),
 
             new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.GOOD, Subject.GRAMMAR, 2),
             new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.SATISFACTORY, Subject.FOREIGN_LANGUAGE, 2),
             new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.EXCELLENT, Subject.HISTORY, 2),
             new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.SATISFACTORY, Subject.MATH, 2),
-            new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 2),
+            new GradeEntry(new Student("Kenneth", "Clark", Sex.MALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 2),
 
             new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.GOOD, Subject.GRAMMAR, 2),
             new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.SATISFACTORY, Subject.FOREIGN_LANGUAGE, 2),
             new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.EXCELLENT, Subject.HISTORY, 2),
             new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.GOOD, Subject.MATH, 2),
-            new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.PASSING, Subject.PHYSICIAL_EXERCISE, 2),
+            new GradeEntry(new Student("Linda", "Wilson", Sex.FEMALE), Grade.PASSING, Subject.PHYSICAL_EXERCISE, 2),
 
             new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.FAILURE, Subject.GRAMMAR, 3),
             new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.SATISFACTORY, Subject.FOREIGN_LANGUAGE, 3),
             new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.PASSING, Subject.HISTORY, 3),
             new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.GOOD, Subject.MATH, 3),
-            new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 3),
+            new GradeEntry(new Student("Sarah", "Williams", Sex.FEMALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 3),
 
             new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.GOOD, Subject.GRAMMAR, 3),
             new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 3),
             new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.SATISFACTORY, Subject.HISTORY, 3),
             new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.EXCELLENT, Subject.MATH, 3),
-            new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.SATISFACTORY, Subject.PHYSICIAL_EXERCISE, 3),
+            new GradeEntry(new Student("Margaret", "Martinez", Sex.FEMALE), Grade.SATISFACTORY, Subject.PHYSICAL_EXERCISE, 3),
 
             new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.GOOD, Subject.GRAMMAR, 3),
             new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.EXCELLENT, Subject.FOREIGN_LANGUAGE, 3),
             new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.SATISFACTORY, Subject.HISTORY, 3),
             new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.GOOD, Subject.MATH, 3),
-            new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 3),
+            new GradeEntry(new Student("Daniel", "Walker", Sex.MALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 3),
 
             new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.EXCELLENT, Subject.GRAMMAR, 3),
             new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 3),
             new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.FAILURE, Subject.HISTORY, 3),
             new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.GOOD, Subject.MATH, 3),
-            new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.EXCELLENT, Subject.PHYSICIAL_EXERCISE, 3),
+            new GradeEntry(new Student("Christopher", "Williams", Sex.MALE), Grade.EXCELLENT, Subject.PHYSICAL_EXERCISE, 3),
 
             new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.FAILURE, Subject.GRAMMAR, 4),
             new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 4),
             new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.SATISFACTORY, Subject.HISTORY, 4),
             new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.FAILURE, Subject.MATH, 4),
-            new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 4),
+            new GradeEntry(new Student("Donna", "Ramirez", Sex.FEMALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 4),
 
             new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.GOOD, Subject.GRAMMAR, 4),
             new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.SATISFACTORY, Subject.FOREIGN_LANGUAGE, 4),
             new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.GOOD, Subject.HISTORY, 4),
             new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.EXCELLENT, Subject.MATH, 4),
-            new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.SATISFACTORY, Subject.PHYSICIAL_EXERCISE, 4),
+            new GradeEntry(new Student("Michael", "Sanchez", Sex.MALE), Grade.SATISFACTORY, Subject.PHYSICAL_EXERCISE, 4),
 
             new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.SATISFACTORY, Subject.GRAMMAR, 4),
             new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 4),
             new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.FAILURE, Subject.HISTORY, 4),
             new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.EXCELLENT, Subject.MATH, 4),
-            new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.GOOD, Subject.PHYSICIAL_EXERCISE, 4),
+            new GradeEntry(new Student("Mary", "Young", Sex.FEMALE), Grade.GOOD, Subject.PHYSICAL_EXERCISE, 4),
 
             new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.GOOD, Subject.GRAMMAR, 4),
             new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.GOOD, Subject.FOREIGN_LANGUAGE, 4),
             new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.SATISFACTORY, Subject.HISTORY, 4),
             new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.GOOD, Subject.MATH, 4),
-            new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.SATISFACTORY, Subject.PHYSICIAL_EXERCISE, 4)
+            new GradeEntry(new Student("Kevin", "Brown", Sex.OTHER), Grade.SATISFACTORY, Subject.PHYSICAL_EXERCISE, 4)
     );
 
     private static final List<String> femaleNames = List.of("Mary",
@@ -387,9 +461,3 @@ public class StreamChallenges implements BasicFunctionalities {
             "Young",
             "Allen");
 }
-
-
-
-
-
-
